@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, {useState} from "react";
 import firebase from "firebase";
-import { storage, db } from "./firebase";
+import {storage, db} from "./firebase";
+import {Input, Button} from "@material-ui/core";
+import Axios from './axios';
 import "./ImageUpload.css";
-import { Input, Button } from "@material-ui/core";
 
-const ImageUpload = ({ username }) => {
+const ImageUpload = ({username}) => {
   const [image, setImage] = useState(null);
   const [url, setUrl] = useState("");
   const [progress, setProgress] = useState(0);
@@ -40,6 +41,12 @@ const ImageUpload = ({ username }) => {
           .then((url) => {
             setUrl(url);
 
+            Axios.post('/upload', {
+              caption: caption,
+              user: username,
+              image: url
+            });
+
             // post image inside db
             db.collection("posts").add({
               imageUrl: url,
@@ -58,20 +65,20 @@ const ImageUpload = ({ username }) => {
 
   return (
     <div className="imageupload">
-      <progress className="imageupload__progress" value={progress} max="100" />
+      <progress className="imageupload__progress" value={progress} max="100"/>
       <Input
         placeholder="Enter a caption"
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
       />
       <div>
-        <input type="file" onChange={handleChange} />
+        <input type="file" onChange={handleChange}/>
         <Button className="imageupload__button" onClick={handleUpload}>
           Upload
         </Button>
       </div>
 
-      <br />
+      <br/>
     </div>
   );
 };

@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect} from "react";
 import "./App.css";
 import Post from "./Post";
 import ImageUpload from "./ImageUpload";
-import { db, auth } from "./firebase";
-import { Button, Avatar, makeStyles, Modal, Input } from "@material-ui/core";
+import {db, auth} from "./firebase";
+import {Button, Avatar, makeStyles, Modal, Input} from "@material-ui/core";
 import FlipMove from "react-flip-move";
 import InstagramEmbed from "react-instagram-embed";
+import Axios from './axios';
+import Pusher from "pusher-js";
 
 function getModalStyle() {
   const top = 50;
@@ -66,12 +68,25 @@ function App() {
     };
   }, [user, username]);
 
+  const fetchPosts = async () => await Axios.get('/sync')
+    .then((response) => {
+      console.log(response);
+      setPosts(response.data);
+    });
+
   useEffect(() => {
-    db.collection("posts")
-      .orderBy("timestamp", "desc")
-      .onSnapshot((snapshot) =>
-        setPosts(snapshot.docs.map((doc) => ({ id: doc.id, post: doc.data() })))
-      );
+    const pusher = new Pusher('873da7754163cde7171f', {
+      cluster: 'ap2'
+    });
+
+    const channel = pusher.subscribe('posts');
+    channel.bind('inserted', (data) => {
+      fetchPosts();
+    });
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
   }, []);
 
   const handleLogin = (e) => {
@@ -180,14 +195,14 @@ function App() {
       <div className="app__posts">
         <div className="app__postsLeft">
           <FlipMove>
-            {posts.map(({ id, post }) => (
+            {posts.map(({post}) => (
               <Post
                 user={user}
-                key={id}
-                postId={id}
+                key={post._id}
+                postId={post._id}
                 username={post.username}
                 caption={post.caption}
-                imageUrl={post.imageUrl}
+                imageUrl={post.image}
               />
             ))}
           </FlipMove>
@@ -200,17 +215,21 @@ function App() {
             containerTagName="div"
             protocol=""
             injectScript
-            onLoading={() => {}}
-            onSuccess={() => {}}
-            onAfterRender={() => {}}
-            onFailure={() => {}}
+            onLoading={() => {
+            }}
+            onSuccess={() => {
+            }}
+            onAfterRender={() => {
+            }}
+            onFailure={() => {
+            }}
           />
         </div>
       </div>
 
       {user?.displayName ? (
         <div className="app__upload">
-          <ImageUpload username={user.displayName} />
+          <ImageUpload username={user.displayName}/>
         </div>
       ) : (
         <center>
