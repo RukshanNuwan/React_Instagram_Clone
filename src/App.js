@@ -2,12 +2,13 @@ import React, {useState, useEffect} from "react";
 import "./App.css";
 import Post from "./Post";
 import ImageUpload from "./ImageUpload";
-import {db, auth} from "./firebase";
+import {auth} from "./firebase";
 import {Button, Avatar, makeStyles, Modal, Input} from "@material-ui/core";
 import FlipMove from "react-flip-move";
 import InstagramEmbed from "react-instagram-embed";
 import Axios from './axios';
 import Pusher from "pusher-js";
+import {createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut} from 'firebase/auth';
 
 function getModalStyle() {
   const top = 50;
@@ -48,7 +49,6 @@ function App() {
     const unsubscribe = auth.onAuthStateChanged((authUser) => {
       if (authUser) {
         // user is logged in...
-        console.log(authUser);
         setUser(authUser);
 
         if (authUser.displayName) {
@@ -70,7 +70,6 @@ function App() {
 
   const fetchPosts = async () => await Axios.get('/sync')
     .then((response) => {
-      console.log(response);
       setPosts(response.data);
     });
 
@@ -86,13 +85,14 @@ function App() {
   }, []);
 
   useEffect(() => {
-    fetchPosts();
+    fetchPosts().then(() => {
+    });
   }, []);
 
   const handleLogin = (e) => {
     e.preventDefault();
-    auth
-      .signInWithEmailAndPassword(email, password)
+
+    signInWithEmailAndPassword(auth, email, password)
       .catch((error) => alert(error.message));
 
     setOpen(false);
@@ -100,8 +100,8 @@ function App() {
 
   const handleRegister = (e) => {
     e.preventDefault();
-    auth
-      .createUserWithEmailAndPassword(email, password)
+
+    createUserWithEmailAndPassword(auth, email, password)
       .catch((error) => alert(error.message));
 
     setRegisterOpen(false);
@@ -177,7 +177,7 @@ function App() {
         />
         {user?.displayName ? (
           <div className="app__headerRight">
-            <Button onClick={() => auth.signOut()}>Logout</Button>
+            <Button onClick={() => signOut(auth)}>Logout</Button>
             <Avatar
               className="app__headerAvatar"
               alt={user.displayName}
@@ -195,11 +195,11 @@ function App() {
       <div className="app__posts">
         <div className="app__postsLeft">
           <FlipMove>
-            {posts.map(({post}) => (
+            {posts.map((post, index) => (
               <Post
                 user={user}
-                key={post._id}
-                postId={post._id}
+                key={index}
+                postId={post.uid}
                 username={post.username}
                 caption={post.caption}
                 imageUrl={post.image}

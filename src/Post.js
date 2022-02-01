@@ -2,7 +2,7 @@ import React, {useState, useEffect, forwardRef} from "react";
 import "./Post.css";
 import Avatar from "@material-ui/core/Avatar";
 import {db} from "./firebase";
-import firebase from "firebase";
+import {addDoc, collection, doc, onSnapshot} from "firebase/firestore";
 
 const Post = forwardRef(
   ({user, username, postId, imageUrl, caption}, ref) => {
@@ -12,13 +12,12 @@ const Post = forwardRef(
     useEffect(() => {
       let unsubscribe;
       if (postId) {
-        unsubscribe = db
-          .collection("posts")
-          .doc(postId)
-          .collection("comments")
-          .onSnapshot((snapshot) => {
-            setComments(snapshot.docs.map((doc) => doc.data()));
-          });
+        const docRef = doc(db, 'posts', postId);
+        const colRef = collection(docRef, 'comments');
+
+        unsubscribe = onSnapshot(colRef, (snapshot) => {
+          setComments(snapshot.docs.map((doc) => doc.data()));
+        });
       }
 
       return () => {
@@ -29,10 +28,16 @@ const Post = forwardRef(
     const postComment = (e) => {
       e.preventDefault();
 
-      db.collection("posts").doc(postId).collection("comments").add({
+      const docRef = doc(db, 'posts', postId);
+      const colRef = collection(docRef, 'comments');
+
+      addDoc(colRef, {
         text: comment,
         username: user.displayName,
+      }).then(() => {
+        console.log('data added');
       });
+
       setComment("");
     };
 
@@ -53,8 +58,8 @@ const Post = forwardRef(
         </h4>
 
         <div className="post__comments">
-          {comments.map((comment) => (
-            <p>
+          {comments.map((comment, index) => (
+            <p key={index}>
               <b>{comment.username}</b> {comment.text}
             </p>
           ))}

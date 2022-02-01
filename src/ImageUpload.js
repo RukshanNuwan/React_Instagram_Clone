@@ -1,9 +1,10 @@
 import React, {useState} from "react";
-import firebase from "firebase";
 import {storage, db} from "./firebase";
 import {Input, Button} from "@material-ui/core";
 import Axios from './axios';
 import "./ImageUpload.css";
+import {addDoc, collection, serverTimestamp} from 'firebase/firestore';
+import {ref} from 'firebase/storage';
 
 const ImageUpload = ({username}) => {
   const [image, setImage] = useState(null);
@@ -18,7 +19,7 @@ const ImageUpload = ({username}) => {
   };
 
   const handleUpload = () => {
-    const uploadTask = storage.ref(`images/${image.name}`).put(image);
+    const uploadTask = ref(storage, `images/${image.name}`).put(image);
     uploadTask.on(
       "state_changed",
       (snapshot) => {
@@ -45,14 +46,18 @@ const ImageUpload = ({username}) => {
               caption: caption,
               user: username,
               image: url
+            }).then(() => {
             });
 
             // post image inside db
-            db.collection("posts").add({
+            const colRef = collection(db, 'posts');
+
+            addDoc(colRef, {
               imageUrl: url,
               caption: caption,
               username: username,
-              timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+              timestamp: serverTimestamp(),
+            }).then(() => {
             });
 
             setProgress(0);
